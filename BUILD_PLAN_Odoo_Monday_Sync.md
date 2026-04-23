@@ -89,6 +89,8 @@ Run through this checklist before writing any workflow JSON. If anything is miss
 
 > **WARNING:** The JSON below is a STRUCTURAL TEMPLATE only. The `monday_column_id` values (e.g., `text_product`, `numbers_qty`, `status`) are placeholders and are NOT the real column IDs on board `18375520163`. Real column IDs come from the Monday API response saved in `/docs/discovery/monday_board_18375520163.json` and must replace every placeholder before the workflow is built. The same rule applies to status label values in the `map` block: they must match the exact label strings configured on the live status column.
 
+> **DISCOVERY NOTE (2026-04-23):** Live board `18375520163` is named **"CMO productions"** and operates as a procurement/production tracking board. Its `status` column (`id: "status"`) has 34 labels that reflect a procurement workflow (e.g. "Order Confirmed", "Booked in Odoo", "To be Ordered", "Production Done") — these do **not** correspond 1:1 with Odoo MO states (`draft`, `confirmed`, `progress`, `to_close`, `done`, `cancel`). The placeholder mapping in `WF-MO-Sync-Odoo-to-Monday`'s config node is a best-guess approximation and **must be confirmed with Mariusz before cutover**. Real column IDs confirmed from discovery: `text0` = MO ref, `text44` = SKU, `text1` = Qty, `person` = owner, `status` = Status, `text6` = LOT. Full schema in `docs/discovery/monday_board_18375520163.json`.
+
 ```json
 {
   "mo_to_monday": {
