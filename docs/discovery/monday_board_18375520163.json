@@ -1,0 +1,91 @@
+{
+  "id": "18375520163",
+  "name": "CMO productions",
+  "columns": [
+    { "id": "name", "title": "Name", "type": "name", "settings_str": "{}" },
+    { "id": "subitems", "title": "Subitems", "type": "subtasks", "settings_str": "{\"allowMultipleItems\":true,\"itemTypeName\":\"column.subtasks.title\",\"displayType\":\"BOARD_INLINE\",\"boardIds\":[18375520174]}" },
+    { "id": "text44", "title": "SKU", "type": "text", "settings_str": "{}" },
+    { "id": "status_2_mkn8p8fe", "title": "Critical Level", "type": "status", "settings_str": "{\"done_colors\":[1],\"labels\":{\"1\":\"Not Critical\",\"2\":\"Critical\"},\"labels_positions_v2\":{\"1\":2,\"2\":0,\"5\":1},\"labels_colors\":{\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}" },
+    { "id": "color_mm0yyqa4", "title": "Priority - trigger", "type": "status", "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"New product\",\"1\":\"Amazon\",\"2\":\"Recipe change\"},\"labels_positions_v2\":{\"0\":0,\"1\":1,\"2\":3,\"5\":2},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}" },
+    { "id": "text0", "title": "MO", "type": "text", "settings_str": "{}" },
+    { "id": "text9", "title": "Comments", "type": "text", "settings_str": "{}" },
+    { "id": "text", "title": "Supplier", "type": "text", "settings_str": "{}" },
+    { "id": "text1", "title": "Qty", "type": "text", "settings_str": "{}" },
+    { "id": "text_mkp0tj56", "title": "Pallets", "type": "text", "settings_str": "{}" },
+    { "id": "person", "title": "Person", "type": "people", "settings_str": "{}" },
+    { "id": "date8", "title": "Date of Need", "type": "date", "settings_str": "{\"show_week_number\":true,\"hide_footer\":false,\"calcType\":\"latest\",\"date_format\":\"BASE\"}" },
+    { "id": "date4", "title": "ETA", "type": "date", "settings_str": "{\"show_week_number\":true}" },
+    { "id": "status", "title": "Status", "type": "status", "settings_str": "{\"done_colors\":[1],\"deactivated_labels\":[101,9],\"labels\":{\"0\":\"Order Confirmed\",\"1\":\"Booked in Odoo\",\"2\":\"To be Ordered\",\"3\":\"Paid\",\"4\":\"Waiting for Payment\",\"5\":\"Request cancelled\",\"6\":\"Waiting for Shipment\",\"7\":\"ON HOLD - PD\",\"8\":\"Received In WH\",\"9\":\"Needs Audit\",\"10\":\"Dispatched to Exim\",\"11\":\"Price Approval Pending\",\"12\":\"Budget declined\",\"13\":\"To be replaced\",\"14\":\"Dispatched to Artifex\",\"15\":\"50% Paid\",\"16\":\"Order sent\",\"17\":\"Dispatched to Gorzow\",\"18\":\"BLOCKED\",\"19\":\"On hold | Quality Issue\",\"101\":\"Open Tension\",\"102\":\"On hold | Price not approved\",\"103\":\"TBD\",\"104\":\"Dispatched\",\"105\":\"ON HOLD - Planning\",\"106\":\"Pending RMQ\",\"107\":\"REPLACED\",\"108\":\"Budget Approved\",\"109\":\"Arrived at YEI WH\",\"110\":\"Dispatched to GE (Gorzow External)\",\"151\":\"Dispatched to PA2\",\"152\":\"ON HOLD-planning\",\"153\":\"w/ Sourcing\",\"154\":\"On Hold\",\"155\":\"Production Done\"}}" },
+    { "id": "date", "title": "Order Date", "type": "date", "settings_str": "{}" },
+    { "id": "check__1", "title": "Delay", "type": "checkbox", "settings_str": "{}" },
+    { "id": "status_1", "title": "Delivery to", "type": "status", "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"Exim\",\"1\":\"Salvena\",\"2\":\"Exim/Quarantine\",\"3\":\"darvit\",\"4\":\"Canexpol\",\"5\":\"\",\"6\":\"PA2\",\"7\":\"Artifex\",\"8\":\"Lambo\",\"9\":\"H+B\",\"10\":\"Vital Products\",\"11\":\"CubeGel\",\"12\":\"Amilek\",\"13\":\"M-pack s.r.o.\",\"14\":\"Packtube\",\"15\":\"Berlin - Aroma Lab\",\"16\":\"Gorzow (YEI)\",\"17\":\"Colfarm\",\"18\":\"Polamedica\",\"157\":\"Gorzow\"}}" },
+    { "id": "pz", "title": "PZ", "type": "text", "settings_str": "{}" },
+    { "id": "text6", "title": "LOT", "type": "text", "settings_str": "{}" },
+    { "id": "text8", "title": "MHD", "type": "text", "settings_str": "{}" },
+    { "id": "files6", "title": "MO/COA", "type": "file", "settings_str": "{\"hide_footer\":false}" },
+    { "id": "text3", "title": "COI Number", "type": "text", "settings_str": "{}" },
+    { "id": "files8", "title": "COI", "type": "file", "settings_str": "{\"hide_footer\":false}" },
+    { "id": "comments", "title": "Drive", "type": "text", "settings_str": "{}" },
+    { "id": "text5", "title": "Air/sea/train bill", "type": "text", "settings_str": "{}" },
+    { "id": "date2", "title": "Creation date", "type": "date", "settings_str": "{}" },
+    { "id": "last_updated", "title": "Last Updated", "type": "last_updated", "settings_str": "{}" },
+    { "id": "check8", "title": "QM Check", "type": "checkbox", "settings_str": "{}" },
+    { "id": "creation_log_mknamhk3", "title": "Creation log", "type": "creation_log", "settings_str": "{}" },
+    { "id": "file_mm0ytqct", "title": "Lab QR code", "type": "file", "settings_str": "{}" },
+    { "id": "file_mm2ctjkq", "title": "DHL Label", "type": "file", "settings_str": "{}" },
+    { "id": "dropdown_mm0yzcdz", "title": "Lab address", "type": "dropdown", "settings_str": "{\"limit_select\":false,\"labels\":[{\"id\":1,\"name\":\"GBA Gesellschaft für Bioanalytik mbH Goldtschmidtstr. 5 21073 Hamburg Germany\"}],\"deactivated_labels\":[]}" },
+    { "id": "multiple_person_mm0yrw9x", "title": "Quality owner/ AMZ", "type": "people", "settings_str": "{}" },
+    { "id": "text_mm0yshr7", "title": "Sample quantity", "type": "text", "settings_str": "{}" },
+    { "id": "color_mm0y1a7y", "title": "Lab order Status - trigger notification", "type": "status", "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"Working on it\",\"1\":\"Done\",\"2\":\"Stuck\"},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}" }
+  ],
+  "groups": [
+    { "id": "topics", "title": "New Orders" },
+    { "id": "group_mm2ehjj9", "title": "Orders Done" },
+    { "id": "new_group54600", "title": "Received In WH" },
+    { "id": "new_group", "title": "Booked in Odoo" }
+  ],
+  "sample_items": [
+    {
+      "id": "11814833126",
+      "name": "Omega 3 EPA 288mg + DHA 162mg vegan - Bulk Capsules",
+      "column_values": [
+        { "id": "text44", "text": "BULK-8130" },
+        { "id": "text0", "text": "MO/58082" },
+        { "id": "text", "text": "Colfarm" },
+        { "id": "text1", "text": "190000" },
+        { "id": "person", "text": "Mariusz Konieczny, Marta Piecek" },
+        { "id": "status", "text": "To be Ordered" },
+        { "id": "status_1", "text": "Exim" },
+        { "id": "text6", "text": "L04622" }
+      ]
+    },
+    {
+      "id": "11727824469",
+      "name": "Omega 3 Complete EPA : DHA : ALA - BULK",
+      "column_values": [
+        { "id": "text44", "text": "BULK-N8896CDE" },
+        { "id": "text0", "text": "Cube/MO/00086" },
+        { "id": "text", "text": "Cube Gel" },
+        { "id": "text1", "text": "1750000" },
+        { "id": "person", "text": "Mariusz Konieczny, Marta Piecek" },
+        { "id": "status", "text": "Order Confirmed" },
+        { "id": "status_1", "text": "Exim" },
+        { "id": "text6", "text": "L04612" }
+      ]
+    },
+    {
+      "id": "11727816606",
+      "name": "Omega 3 softgels forte 120 - BULK",
+      "column_values": [
+        { "id": "text44", "text": "BULK-N8592CDE" },
+        { "id": "text0", "text": "Cube/MO/00085" },
+        { "id": "text", "text": "Cube Gel" },
+        { "id": "text1", "text": "1750000" },
+        { "id": "person", "text": "Mariusz Konieczny, Marta Piecek" },
+        { "id": "status", "text": "Order Confirmed" },
+        { "id": "status_1", "text": "Exim" },
+        { "id": "text6", "text": "L04612" }
+      ]
+    }
+  ]
+}
