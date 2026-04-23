@@ -79,7 +79,7 @@ Run through this checklist before writing any workflow JSON. If anything is miss
 - [ ] Field mapping table from the discovery session has been captured and pasted into this plan below
 - [ ] User mapping table (Odoo user → Monday user) exists or has been created
 - [ ] BigQuery dataset and table for audit log exists (`sundaybi.ops_automation.mo_sync_events`)
-- [ ] Slack webhook for Central Data Team alerting channel is known
+- [ ] `WF-Global-Error-Alert` workflow exists and posts to the Central Data Team Slack channel (if not, build or update it as part of Phase 1)
 
 ---
 
@@ -121,58 +121,11 @@ Run through this checklist before writing any workflow JSON. If anything is miss
 
 ## Workflow architecture
 
-Five workflows. Two main, three sub. Build in this order.
+Two workflows. One per direction. That's it.
 
-### 1. `WF-MO-Map-Fields` (sub-workflow, build first)
+Field mapping lives in a single Code node at the top of each workflow, loaded from the JSON config above. Audit logging is a direct BigQuery insert node. Error alerting is handled by the org-wide `WF-Global-Error-Alert` workflow (n8n's Error Trigger pattern), which is infrastructure, not part of this build.
 
-**Purpose:** Single source of truth for transformation. Takes a direction flag and a payload, returns the mapped output.
-
-**Inputs:**
-- `direction`: `"odoo_to_monday"` or `"monday_to_odoo"`
-- `payload`: the source record
-- `mapping_config`: the JSON above, loaded from a Code node at the top
-
-**Outputs:**
-- `mapped_data`: fields ready to write to the target system
-- `changed_fields`: array of field names that actually changed (for update flows)
-- `unmapped_fields`: fields present in source but not in mapping (for logging)
-
-**Implementation notes:**
-- Pure transformation, no API calls
-- Handles type coercion (dates → ISO 8601, status → Monday label, people → Monday user ID)
-- Unresolvable user mappings return `null` and log a warning, do NOT fail the sync
-- Field diffing for updates: compare incoming payload to last-known state (cached in Monday item's hidden column or in the audit log)
-
-### 2. `WF-MO-Log-Event` (sub-workflow)
-
-**Purpose:** Append-only structured audit log.
-
-**Writes to:** `sundaybi.ops_automation.mo_sync_events` in BigQuery
-
-**Schema:**
-```
-event_id          STRING (UUID)
-event_timestamp   TIMESTAMP
-direction         STRING  -- "odoo_to_monday" or "monday_to_odoo"
-odoo_mo_id        INTEGER
-odoo_mo_reference STRING
-monday_item_id    STRING
-fields_changed    JSON    -- { "status": { "before": "...", "after": "..." }, ... }
-outcome           STRING  -- "success", "retry", "failed", "skipped_no_change"
-error_message     STRING  -- null unless outcome is failed
-trigger_source    STRING  -- "odoo_webhook", "odoo_poll", "monday_webhook"
-workflow_execution_id STRING
-```
-
-### 3. `WF-MO-Alert-Failure` (sub-workflow)
-
-**Purpose:** Slack alert on unrecoverable errors (after 3 retries).
-
-**Posts to:** Central Data Team Slack channel
-
-**Payload includes:** MO reference, direction, error message, link to n8n execution, link to the Odoo record and the Monday item.
-
-### 4. `WF-MO-Sync-Odoo-to-Monday` (main workflow)
+### 1. `WF-MO-Sync-Odoo-to-Monday`
 
 **Trigger options, in order of preference:**
 1. Webhook endpoint receiving Odoo outgoing webhook on `mrp.production` create/write
@@ -183,112 +136,108 @@ workflow_execution_id STRING
 ```
 [Trigger]
     ↓
+[Code: load mapping_config]
+    ↓
 [Fetch full MO from Odoo by ID]  (includes related records: product, BOM, user, lots)
     ↓
-[Check for existing Monday item]  (query board by back-reference, MO name in a hidden text column)
+[Code: apply field mapping, produce mapped_data + changed_fields]
     ↓
-    ├── Found → route to UPDATE branch
-    └── Not found → route to CREATE branch
+[Check for existing Monday item on board 18375520163 by MO reference]
+    ↓
+    ├── Not found → CREATE path
+    └── Found → UPDATE path
 
-CREATE branch:
+CREATE path:
     ↓
-[Call WF-MO-Map-Fields with direction=odoo_to_monday]
+[Resolve target Monday group from mapping_config.group_selector]
     ↓
-[Resolve target Monday group]  (based on mapping_config.group_selector)
+[Create Monday item via create_item mutation]
     ↓
-[Create Monday item via GraphQL create_item mutation]
+[Write Monday item ID back to Odoo MO custom field x_monday_item_id]
     ↓
-[Write Monday item ID back to Odoo MO]  (custom field x_monday_item_id)
-    ↓
-[Call WF-MO-Log-Event with outcome=success]
+[BigQuery insert: outcome=success]
 
-UPDATE branch:
+UPDATE path:
     ↓
-[Call WF-MO-Map-Fields with direction=odoo_to_monday]
+[If changed_fields is empty → BigQuery insert outcome=skipped_no_change, end]
     ↓
-[Compare changed_fields to empty set]
+[Update Monday item via change_multiple_column_values mutation, set hidden column x_last_sync_source=odoo in the same call]
     ↓
-    ├── No changes → [Log skipped_no_change, end]
-    └── Changes present → continue
-    ↓
-[Tag update with source marker: set hidden column x_last_sync_source=odoo]
-    ↓
-[Update Monday item via change_multiple_column_values mutation]
-    ↓
-[Call WF-MO-Log-Event with outcome=success]
-
-ERROR handling (on any failure):
-    ↓
-[Retry with exponential backoff: 5s, 30s, 2m]
-    ↓
-    ├── Success on retry → log outcome=retry
-    └── All retries fail → [Call WF-MO-Alert-Failure, log outcome=failed]
+[BigQuery insert: outcome=success]
 ```
 
-**Critical implementation details:**
-- Monday GraphQL mutations must use `change_multiple_column_values`, not one call per column (complexity budget)
-- Monday API rate limit: watch for `429` responses, respect the `Retry-After` header
-- Every Monday write sets the `x_last_sync_source` hidden column to `odoo`. The reverse workflow checks this to prevent loops.
-- Use n8n's `Error Trigger` workflow pattern, not inline try/catch in Code nodes
+**Error handling:** Set n8n node retry to 3 attempts with exponential backoff (5s, 30s, 2m) on the Monday API and Odoo API nodes directly. n8n's built-in retry handles this, no custom logic needed. If all retries fail, the node errors and the Error Trigger workflow posts to Slack.
 
-### 5. `WF-MO-Sync-Monday-to-Odoo` (main workflow)
+### 2. `WF-MO-Sync-Monday-to-Odoo`
 
-**Trigger:** Monday webhook subscription on the target board, event `change_column_value`.
+**Trigger:** Monday webhook subscription on board `18375520163`, event `change_column_value`.
 
 **Flow:**
 
 ```
 [Monday webhook trigger]
     ↓
+[Code: load mapping_config]
+    ↓
+[If column_id not in monday_to_odoo_whitelist → BigQuery insert skipped_not_whitelisted, end]
+    ↓
 [Fetch item's x_last_sync_source hidden column]
     ↓
-    ├── Value is "odoo" (this change came from our own write) → [Log skipped_self_triggered, end]
-    └── Value is null or "monday" → continue
+[If value is "odoo" → BigQuery insert skipped_self_triggered, end]
     ↓
-[Check column ID against monday_to_odoo_whitelist]
+[Fetch Odoo MO ID from Monday item back-reference]
     ↓
-    ├── Not in whitelist → [Log skipped_not_whitelisted, end]
-    └── In whitelist → continue
+[Code: apply field mapping for monday_to_odoo direction]
     ↓
-[Fetch Odoo MO ID from Monday item's back-reference]
+[Write to Odoo via mrp.production.write()]
     ↓
-[Call WF-MO-Map-Fields with direction=monday_to_odoo]
+[Set x_last_sync_source=monday on the Monday item]
     ↓
-[Write to Odoo via mrp.production write()]
-    ↓
-[Set x_last_sync_source=monday on the Monday item]  (so Odoo webhook fires but we ignore it)
-    ↓
-[Call WF-MO-Log-Event with outcome=success]
-
-ERROR handling: same retry + alert pattern as main workflow 1
+[BigQuery insert: outcome=success]
 ```
 
-**Loop prevention (critical):** The `x_last_sync_source` marker is the only thing stopping a ping-pong between the two workflows. When Odoo writes to Monday, we set it to `odoo`. The Monday webhook fires, sees `odoo`, exits. Symmetric for the reverse. Every update must set this marker BEFORE the actual content write so the remote trigger sees it.
+**Error handling:** Same as workflow 1. Node-level retry, Error Trigger catches unrecoverable failures.
+
+### Critical implementation details (apply to both workflows)
+
+- Monday GraphQL: always use `change_multiple_column_values`, never one call per column (complexity budget)
+- Monday API rate limit: handled by n8n node retry respecting `Retry-After` header
+- **Loop prevention:** `x_last_sync_source` is the only thing stopping a ping-pong. Workflow 1 sets it to `odoo` in the same mutation that writes the content. Workflow 2 sets it to `monday` after writing to Odoo. Each workflow checks this marker on entry and exits early if its own change triggered the remote webhook.
+- Field mapping is loaded in a Code node at the top of each workflow. Changing the mapping means editing two Code nodes (acceptable: they diverge subtly over time anyway, keeping them local is cleaner than shared indirection).
+- Audit log is a single BigQuery insert node per outcome branch. Schema:
+
+```
+event_id          STRING (UUID, generated in Code node)
+event_timestamp   TIMESTAMP
+direction         STRING  (odoo_to_monday | monday_to_odoo)
+odoo_mo_id        INTEGER
+odoo_mo_reference STRING
+monday_item_id    STRING
+fields_changed    JSON
+outcome           STRING  (success | skipped_no_change | skipped_not_whitelisted | skipped_self_triggered | failed)
+error_message     STRING
+trigger_source    STRING  (odoo_webhook | odoo_poll | monday_webhook)
+workflow_execution_id STRING
+```
 
 ---
 
-## Build phases (11 steps, each should end with a commit to Bitbucket)
+## Build phases (7 steps, each ends with a commit to Bitbucket)
 
-### Phase 1: Foundations
-1. Create BigQuery table `sundaybi.ops_automation.mo_sync_events` with the schema above
-2. Create n8n credentials: `monday-api-token`, `odoo-integration-user`, `bigquery-ops-automation`, `slack-central-data-alerts`
-3. Build `WF-MO-Log-Event`. Test by calling it manually with a fake payload, verify row lands in BigQuery.
-4. Build `WF-MO-Alert-Failure`. Test by triggering it manually, verify Slack message lands.
+### Phase 1: Setup (0.5 day)
+1. Create BigQuery table `sundaybi.ops_automation.mo_sync_events` with the schema above. Create n8n credentials: `monday-api-token`, `odoo-integration-user`, `bigquery-ops-automation`. Confirm `WF-Global-Error-Alert` exists or create it.
 
-### Phase 2: Mapping
-5. Build `WF-MO-Map-Fields` with the JSON config loaded from a Code node. Unit test with 5 sample Odoo MO payloads (one per state) and verify output matches expected Monday column values
+### Phase 2: Odoo → Monday (3-4 days)
+2. Build `WF-MO-Sync-Odoo-to-Monday` CREATE path. Trigger manually with a real MO ID. Verify a Monday item is created on board `18375520163` and the back-reference is written to Odoo.
+3. Add the UPDATE path with field diffing. Trigger with a modified MO. Verify only changed columns are written in Monday (inspect Monday activity log).
+4. Wire up the Odoo webhook trigger (or polling fallback if Ciprian confirms webhooks are not available). End-to-end test: create a new MO in Odoo, verify it appears in Monday within 2 minutes.
 
-### Phase 3: Odoo → Monday
-6. Build `WF-MO-Sync-Odoo-to-Monday` CREATE branch only. Trigger manually with a real MO ID. Verify a Monday item is created and the back-reference is written to Odoo
-7. Add the UPDATE branch. Trigger with a modified MO. Verify only changed columns are written in Monday (inspect activity log)
-8. Wire up the Odoo webhook trigger (or polling fallback). End-to-end test: create a new MO in Odoo, verify it appears in Monday within 2 minutes
+### Phase 3: Monday → Odoo (2-3 days)
+5. Build `WF-MO-Sync-Monday-to-Odoo` with the whitelist check and loop prevention.
+6. Wire up the Monday webhook subscription on board `18375520163`. End-to-end test: change a whitelisted column in Monday, verify Odoo reflects the change. Change a non-whitelisted column, verify Odoo does NOT change.
 
-### Phase 4: Monday → Odoo
-9. Build `WF-MO-Sync-Monday-to-Odoo` with the whitelist check and loop prevention
-10. Wire up the Monday webhook subscription. End-to-end test: change a whitelisted column in Monday, verify Odoo reflects the change. Change a non-whitelisted column, verify Odoo does NOT change.
-
-### Phase 5: Hardening
-11. Loop-prevention stress test: in rapid succession, update the same MO from both sides. Verify no infinite loop, final state is correct (Odoo wins on conflict), all events logged.
+### Phase 4: Hardening (1 day)
+7. Loop-prevention stress test: in rapid succession, update the same MO from both sides. Verify no infinite loop, final state is correct (Odoo wins on conflict), all events logged correctly.
 
 ---
 
